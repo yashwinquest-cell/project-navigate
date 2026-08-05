@@ -22,3 +22,21 @@ export const POI_CODES: Record<string, string> = {
   cinema: "CN",
   kidszone: "KZ",
 };
+
+export const CATEGORY_OPTIONS: Category[] = [
+  "entrance",
+  "ticket",
+  "exit",
+  "food",
+  "shop",
+  "restroom",
+  "entertainment",
+];
+
+/** Short 2-letter code for a pin. Falls back to the name's initials for POIs outside the fixed demo set. */
+export function getPoiCode(poi: { id: string; name: string }): string {
+  const known = POI_CODES[poi.id];
+  if (known) return known;
+  const letters = poi.name.replace(/[^A-Za-z]/g, "").toUpperCase();
+  return letters.slice(0, 2) || "??";
+}
