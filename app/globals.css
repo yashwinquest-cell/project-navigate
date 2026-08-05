@@ -94,6 +94,7 @@ button {
   border: 1px solid var(--line);
   background: var(--paper);
   color: var(--ink-soft);
+  font: inherit;
   font-size: 12.5px;
   font-weight: 700;
   padding: 7px 12px;
@@ -101,6 +102,58 @@ button {
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.header-link:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.view-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  padding: 2px;
+  gap: 2px;
+  background: var(--paper);
+}
+
+.view-toggle button {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 6px 12px;
+  border-radius: 100px;
+  cursor: pointer;
+}
+
+.view-toggle button[data-active="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.scene3d {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+.scene3d:active {
+  cursor: grabbing;
+}
+.scene3d canvas {
+  display: block;
 }
 
 .map-area {
@@ -218,11 +271,25 @@ button {
 
 .poi-row {
   display: flex;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  border-radius: 10px;
+}
+
+.poi-row[data-selected="true"] {
+  background: var(--route-soft);
+}
+
+.poi-row-main {
+  flex: 1;
+  display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
+  min-width: 0;
   border: none;
   background: transparent;
+  font: inherit;
   padding: 10px 8px;
   border-radius: 10px;
   text-align: left;
@@ -230,12 +297,27 @@ button {
   color: var(--ink);
 }
 
-.poi-row[data-selected="true"] {
-  background: var(--route-soft);
+.poi-row-main:active {
+  background: var(--line);
 }
 
-.poi-row:active {
+.poi-preview-btn {
+  flex: none;
+  align-self: center;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-faint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 5px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.poi-preview-btn:active {
   background: var(--line);
+  color: var(--ink);
 }
 
 .poi-swatch {
@@ -266,6 +348,75 @@ button {
 
 .poi-category {
   font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+/* ---------- 3D preview modal ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 26, 38, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.modal-card {
+  position: relative;
+  width: min(360px, 100%);
+  background: var(--paper-raised);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(238, 241, 244, 0.9);
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-scene {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #eef1f4;
+}
+
+.modal-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.modal-info .poi-swatch {
+  width: 16px;
+  height: 16px;
+}
+
+.modal-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.modal-category {
+  margin: 0;
+  font-size: 12.5px;
   color: var(--ink-faint);
 }
 

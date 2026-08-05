@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { demoVenue, type Venue } from "@/lib/venue";
 import { findRoute } from "@/lib/pathfinding";
 import { CATEGORY_META, getPoiCode } from "@/lib/categories";
 import { CUSTOM_VENUE_KEY } from "@/lib/editorState";
+import { downloadBlob, exportVenueToGLB, slugify } from "@/lib/exportGLB";
 import VenueMap from "@/components/VenueMap";
+import Place3DModal from "@/components/Place3DModal";
+
+const Venue3DView = dynamic(() => import("@/components/Venue3DView"), { ssr: false });
 
 const METERS_PER_UNIT = 0.1;
 const WALK_SPEED_MPS = 1.3;
@@ -15,6 +20,9 @@ export default function Home() {
   const [venue, setVenue] = useState<Venue>(demoVenue);
   const [isCustom, setIsCustom] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"2D" | "3D">("2D");
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const raw = window.localStorage.getItem(CUSTOM_VENUE_KEY);
@@ -36,6 +44,7 @@ export default function Home() {
   }, [venue, selectedId]);
 
   const selectedPoi = venue.pois.find((p) => p.id === selectedId) ?? null;
+  const previewPoi = venue.pois.find((p) => p.id === previewId) ?? null;
   const startPoi = venue.pois.find((p) => p.nodeId === venue.startNodeId) ?? null;
 
   const meters = route ? Math.round(route.distance * METERS_PER_UNIT) : 0;
@@ -51,6 +60,16 @@ export default function Home() {
     setVenue(demoVenue);
     setIsCustom(false);
     setSelectedId(null);
+  }
+
+  async function handleDownload3D() {
+    setExporting(true);
+    try {
+      const blob = await exportVenueToGLB(venue);
+      downloadBlob(blob, `${slugify(venue.name)}.glb`);
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -71,15 +90,38 @@ export default function Home() {
             </Link>
           )}
         </div>
+        <div className="view-toolbar">
+          <div className="view-toggle">
+            <button
+              data-active={viewMode === "2D"}
+              onClick={() => setViewMode("2D")}
+            >
+              2D map
+            </button>
+            <button
+              data-active={viewMode === "3D"}
+              onClick={() => setViewMode("3D")}
+            >
+              3D map
+            </button>
+          </div>
+          <button className="header-link" onClick={handleDownload3D} disabled={exporting}>
+            {exporting ? "Preparing…" : "Download 3D model"}
+          </button>
+        </div>
       </header>
 
       <div className="map-area">
-        <VenueMap
-          venue={venue}
-          selectedId={selectedId}
-          route={route}
-          onSelectPoi={handleSelect}
-        />
+        {viewMode === "2D" ? (
+          <VenueMap
+            venue={venue}
+            selectedId={selectedId}
+            route={route}
+            onSelectPoi={handleSelect}
+          />
+        ) : (
+          <Venue3DView venue={venue} routeNodeIds={route?.nodeIds} onSelectPoi={handleSelect} />
+        )}
       </div>
 
       <div className="sheet">
@@ -107,27 +149,33 @@ export default function Home() {
             .map((poi) => {
               const meta = CATEGORY_META[poi.category];
               return (
-                <button
-                  key={poi.id}
-                  className="poi-row"
-                  data-selected={poi.id === selectedId}
-                  onClick={() => handleSelect(poi.id)}
-                >
-                  <span
-                    className="poi-swatch"
-                    style={{ background: `var(${meta.colorVar})` }}
+                <div className="poi-row" key={poi.id} data-selected={poi.id === selectedId}>
+                  <button className="poi-row-main" onClick={() => handleSelect(poi.id)}>
+                    <span
+                      className="poi-swatch"
+                      style={{ background: `var(${meta.colorVar})` }}
+                    >
+                      {getPoiCode(poi)}
+                    </span>
+                    <span className="poi-info">
+                      <span className="poi-name">{poi.name}</span>
+                      <span className="poi-category">{meta.label}</span>
+                    </span>
+                  </button>
+                  <button
+                    className="poi-preview-btn"
+                    onClick={() => setPreviewId(poi.id)}
+                    aria-label={`3D preview of ${poi.name}`}
                   >
-                    {getPoiCode(poi)}
-                  </span>
-                  <span className="poi-info">
-                    <span className="poi-name">{poi.name}</span>
-                    <span className="poi-category">{meta.label}</span>
-                  </span>
-                </button>
+                    3D
+                  </button>
+                </div>
               );
             })}
         </div>
       </div>
+
+      {previewPoi && <Place3DModal poi={previewPoi} onClose={() => setPreviewId(null)} />}
     </div>
   );
 }

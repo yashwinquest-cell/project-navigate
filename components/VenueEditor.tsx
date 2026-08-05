@@ -10,6 +10,7 @@ import {
 } from "@/lib/editorState";
 import { CATEGORY_META, CATEGORY_OPTIONS } from "@/lib/categories";
 import { wrapLabel } from "@/lib/textWrap";
+import { downloadBlob, exportVenueToGLB, slugify } from "@/lib/exportGLB";
 
 type Mode = "walkway" | "room" | "node" | "edge";
 
@@ -40,6 +41,7 @@ export default function VenueEditor() {
   const [importText, setImportText] = useState("");
   const [importError, setImportError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
@@ -146,6 +148,16 @@ export default function VenueEditor() {
   function previewInApp() {
     window.localStorage.setItem(CUSTOM_VENUE_KEY, json);
     window.location.href = "/";
+  }
+
+  async function download3D() {
+    setExporting(true);
+    try {
+      const blob = await exportVenueToGLB(state);
+      downloadBlob(blob, `${slugify(state.name)}.glb`);
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -530,6 +542,9 @@ export default function VenueEditor() {
                 disabled={validation.issues.length > 0}
               >
                 Preview in app
+              </button>
+              <button className="ghost-btn" onClick={download3D} disabled={exporting}>
+                {exporting ? "Preparing…" : "Download 3D model"}
               </button>
             </div>
             <textarea className="json-input" rows={8} readOnly value={json} />
