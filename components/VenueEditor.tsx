@@ -11,6 +11,7 @@ import {
 import { CATEGORY_META, CATEGORY_OPTIONS } from "@/lib/categories";
 import { wrapLabel } from "@/lib/textWrap";
 import { downloadBlob, exportVenueToGLB, slugify } from "@/lib/exportGLB";
+import { parseDxfToVenue } from "@/lib/dxfImport";
 
 type Mode = "walkway" | "room" | "node" | "edge";
 
@@ -42,8 +43,12 @@ export default function VenueEditor() {
   const [importError, setImportError] = useState("");
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [dxfWarnings, setDxfWarnings] = useState<string[]>([]);
+  const [dxfError, setDxfError] = useState("");
+  const [importingDxf, setImportingDxf] = useState(false);
 
   const svgRef = useRef<SVGSVGElement>(null);
+  const dxfInputRef = useRef<HTMLInputElement>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
 
   const nodesById = new Map(state.nodes.map((n) => [n.id, n]));
@@ -137,6 +142,35 @@ export default function VenueEditor() {
         err instanceof Error ? `Couldn't load that: ${err.message}` : "Couldn't load that JSON."
       );
     }
+  }
+
+  function handleDxfFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportingDxf(true);
+    setDxfError("");
+    setDxfWarnings([]);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result ?? "");
+        const name = file.name.replace(/\.dxf$/i, "");
+        const { venue, warnings } = parseDxfToVenue(text, name);
+        dispatch({ type: "LOAD", venue });
+        setPendingEdgeFrom(null);
+        setDxfWarnings(warnings);
+      } catch (err) {
+        setDxfError(err instanceof Error ? err.message : "Couldn't read that DXF file.");
+      } finally {
+        setImportingDxf(false);
+      }
+    };
+    reader.onerror = () => {
+      setDxfError("Couldn't read that file.");
+      setImportingDxf(false);
+    };
+    reader.readAsText(file);
   }
 
   async function copyJson() {
@@ -383,10 +417,32 @@ export default function VenueEditor() {
               <button className="ghost-btn" onClick={() => setShowImport((v) => !v)}>
                 Import JSON
               </button>
+              <button
+                className="ghost-btn"
+                onClick={() => dxfInputRef.current?.click()}
+                disabled={importingDxf}
+              >
+                {importingDxf ? "Reading DXF…" : "Import DXF"}
+              </button>
               <button className="ghost-btn danger" onClick={clearAll}>
                 Clear all
               </button>
             </div>
+            <input
+              ref={dxfInputRef}
+              type="file"
+              accept=".dxf"
+              onChange={handleDxfFile}
+              style={{ display: "none" }}
+            />
+            {dxfError && <p className="error-text">{dxfError}</p>}
+            {dxfWarnings.length > 0 && (
+              <ul className="issue-list">
+                {dxfWarnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            )}
             {showImport && (
               <div className="import-box">
                 <textarea
