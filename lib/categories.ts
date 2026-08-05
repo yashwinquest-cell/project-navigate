@@ -8,6 +8,7 @@ export const CATEGORY_META: Record<Category, { colorVar: string; label: string }
   shop: { colorVar: "--route", label: "Shopping" },
   restroom: { colorVar: "--ink-faint", label: "Restroom" },
   entertainment: { colorVar: "--route", label: "Entertainment" },
+  nature: { colorVar: "--nature", label: "Garden & nature" },
 };
 
 export const POI_CODES: Record<string, string> = {
@@ -31,6 +32,7 @@ export const CATEGORY_OPTIONS: Category[] = [
   "shop",
   "restroom",
   "entertainment",
+  "nature",
 ];
 
 /** Short 2-letter code for a pin. Falls back to the name's initials for POIs outside the fixed demo set. */

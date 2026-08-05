@@ -11,6 +11,7 @@
   --route-soft: #dcedeb;
   --safety: #1e8e3e;
   --amber: #b97a16;
+  --nature: #4d7c3e;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,6 +28,7 @@
     --route-soft: #17332f;
     --safety: #34c759;
     --amber: #e0a63c;
+    --nature: #7bc26a;
   }
 }
 

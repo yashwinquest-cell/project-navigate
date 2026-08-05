@@ -58,9 +58,7 @@ export default function Home() {
       <header className="app-header">
         <div className="app-header-row">
           <div>
-            <p className="app-eyebrow">
-              {isCustom ? "Custom venue" : "Live demo · Sample venue"}
-            </p>
+            <p className="app-eyebrow">{isCustom ? "Custom venue" : "Live demo"}</p>
             <h1 className="app-title">{venue.name}</h1>
           </div>
           {isCustom ? (
