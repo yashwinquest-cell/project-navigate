@@ -4,7 +4,13 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { Venue } from "@/lib/venue";
-import { buildVenueGroup, venueFootprint } from "@/lib/scene3d";
+import {
+  buildVenueGroup,
+  venueFootprint,
+  buildEcoParkReplica,
+  replicaFootprint,
+  isEcoParkReplicaEligible,
+} from "@/lib/scene3d";
 
 interface Venue3DViewProps {
   venue: Venue;
@@ -122,13 +128,16 @@ export default function Venue3DView({ venue, routeNodeIds, onSelectPoi }: Venue3
     if (!scene || !camera || !controls) return;
 
     if (groupRef.current) scene.remove(groupRef.current);
-    const group = buildVenueGroup(venue, { routeNodeIds });
+    const useReplica = isEcoParkReplicaEligible(venue);
+    const group = useReplica
+      ? buildEcoParkReplica(venue, { routeNodeIds })
+      : buildVenueGroup(venue, { routeNodeIds });
     groupRef.current = group;
     scene.add(group);
 
     if (framedVenueRef.current !== venue) {
       framedVenueRef.current = venue;
-      const { center, radius } = venueFootprint(venue);
+      const { center, radius } = useReplica ? replicaFootprint() : venueFootprint(venue);
       camera.position.set(center.x + radius * 0.55, radius * 0.7, center.z + radius * 0.85);
       controls.target.copy(center);
       controls.update();

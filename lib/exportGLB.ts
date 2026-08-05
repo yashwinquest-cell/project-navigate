@@ -1,14 +1,14 @@
 import * as THREE from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import type { Venue } from "./venue";
-import { buildVenueGroup } from "./scene3d";
+import { buildVenueGroup, buildEcoParkReplica, isEcoParkReplicaEligible } from "./scene3d";
 
 /** Exports the venue's 3D scene as a binary glTF (.glb), openable in Blender, Unity, etc. */
 export function exportVenueToGLB(venue: Venue): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const scene = new THREE.Scene();
     scene.name = venue.name;
-    scene.add(buildVenueGroup(venue));
+    scene.add(isEcoParkReplicaEligible(venue) ? buildEcoParkReplica(venue) : buildVenueGroup(venue));
 
     const exporter = new GLTFExporter();
     exporter.parse(
