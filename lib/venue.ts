@@ -36,7 +36,9 @@ export interface PointOfInterest {
 export interface Venue {
   name: string;
   viewBox: { w: number; h: number };
-  corridor: VenueRoom;
+  /** Walkable floor areas, drawn under everything else. */
+  walkways: VenueRoom[];
+  startNodeId: string;
   nodes: VenueNode[];
   edges: VenueEdge[];
   pois: PointOfInterest[];
@@ -45,7 +47,8 @@ export interface Venue {
 export const demoVenue: Venue = {
   name: "Sunrise Mall — Ground Floor",
   viewBox: { w: 800, h: 500 },
-  corridor: { x: 40, y: 230, w: 740, h: 40 },
+  walkways: [{ x: 40, y: 230, w: 740, h: 40 }],
+  startNodeId: "entrance",
   nodes: [
     { id: "entrance", x: 60, y: 250 },
     { id: "c1", x: 160, y: 250 },

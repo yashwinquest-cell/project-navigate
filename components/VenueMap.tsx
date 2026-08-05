@@ -2,11 +2,10 @@
 
 import type { Venue } from "@/lib/venue";
 import type { RouteResult } from "@/lib/pathfinding";
-import { CATEGORY_META, POI_CODES } from "@/lib/categories";
+import { CATEGORY_META, getPoiCode } from "@/lib/categories";
 
 interface VenueMapProps {
   venue: Venue;
-  startId: string;
   selectedId: string | null;
   route: RouteResult | null;
   onSelectPoi: (id: string) => void;
@@ -14,12 +13,12 @@ interface VenueMapProps {
 
 export default function VenueMap({
   venue,
-  startId,
   selectedId,
   route,
   onSelectPoi,
 }: VenueMapProps) {
   const nodesById = new Map(venue.nodes.map((n) => [n.id, n]));
+  const startId = venue.startNodeId;
 
   return (
     <svg
@@ -28,39 +27,39 @@ export default function VenueMap({
       role="img"
       aria-label={`Floor map of ${venue.name}`}
     >
-      {/* corridor floor */}
-      <rect
-        x={venue.corridor.x}
-        y={venue.corridor.y}
-        width={venue.corridor.w}
-        height={venue.corridor.h}
-        rx={4}
-        fill="var(--paper-raised)"
-        stroke="var(--line)"
-        strokeWidth={2}
-      />
+      {/* walkable floor */}
+      {venue.walkways.map((room, i) => (
+        <rect
+          key={`walkway-${i}`}
+          x={room.x}
+          y={room.y}
+          width={room.w}
+          height={room.h}
+          rx={4}
+          fill="var(--paper-raised)"
+          stroke="var(--line)"
+          strokeWidth={2}
+        />
+      ))}
 
-      {/* doorway connectors between corridor and rooms */}
-      {venue.pois
-        .filter((p) => p.room)
-        .map((poi) => {
-          const node = nodesById.get(poi.nodeId)!;
-          const isTop = node.y < venue.corridor.y;
-          const y1 = isTop ? node.y : venue.corridor.y + venue.corridor.h;
-          const y2 = isTop ? venue.corridor.y : node.y;
-          return (
-            <rect
-              key={`door-${poi.id}`}
-              x={node.x - 9}
-              y={y1}
-              width={18}
-              height={y2 - y1}
-              fill="var(--paper-raised)"
-              stroke="var(--line)"
-              strokeWidth={2}
-            />
-          );
-        })}
+      {/* every edge in the routing graph, drawn as a thin connector path */}
+      {venue.edges.map((edge, i) => {
+        const from = nodesById.get(edge.from);
+        const to = nodesById.get(edge.to);
+        if (!from || !to) return null;
+        return (
+          <line
+            key={`edge-${i}`}
+            x1={from.x}
+            y1={from.y}
+            x2={to.x}
+            y2={to.y}
+            stroke="var(--line)"
+            strokeWidth={4}
+            strokeLinecap="round"
+          />
+        );
+      })}
 
       {/* rooms */}
       {venue.pois
@@ -107,7 +106,8 @@ export default function VenueMap({
 
       {/* start marker */}
       {(() => {
-        const start = nodesById.get(startId)!;
+        const start = nodesById.get(startId);
+        if (!start) return null;
         return (
           <g>
             <circle cx={start.x} cy={start.y} r={9} fill="var(--ink)" />
@@ -126,9 +126,10 @@ export default function VenueMap({
 
       {/* poi pins */}
       {venue.pois
-        .filter((p) => p.id !== startId)
+        .filter((p) => p.nodeId !== startId)
         .map((poi) => {
-          const node = nodesById.get(poi.nodeId)!;
+          const node = nodesById.get(poi.nodeId);
+          if (!node) return null;
           const meta = CATEGORY_META[poi.category];
           const isSelected = poi.id === selectedId;
           return (
@@ -157,7 +158,7 @@ export default function VenueMap({
                 textAnchor="middle"
                 className="pin-code"
               >
-                {POI_CODES[poi.id] ?? "?"}
+                {getPoiCode(poi)}
               </text>
             </g>
           );
