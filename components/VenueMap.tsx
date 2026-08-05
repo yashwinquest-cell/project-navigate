@@ -3,6 +3,7 @@
 import type { Venue } from "@/lib/venue";
 import type { RouteResult } from "@/lib/pathfinding";
 import { CATEGORY_META, getPoiCode } from "@/lib/categories";
+import { wrapLabel } from "@/lib/textWrap";
 
 interface VenueMapProps {
   venue: Venue;
@@ -67,6 +68,9 @@ export default function VenueMap({
         .map((poi) => {
           const meta = CATEGORY_META[poi.category];
           const room = poi.room!;
+          const cx = room.x + room.w / 2;
+          const cy = room.y + room.h / 2;
+          const lines = wrapLabel(poi.name, room.w - 12);
           return (
             <g key={`room-${poi.id}`}>
               <rect
@@ -79,13 +83,16 @@ export default function VenueMap({
                 stroke={`var(${meta.colorVar})`}
                 strokeWidth={2}
               />
-              <text
-                x={room.x + room.w / 2}
-                y={room.y + room.h / 2 + 4}
-                textAnchor="middle"
-                className="room-label"
-              >
-                {poi.name}
+              <text x={cx} y={cy} textAnchor="middle" className="room-label">
+                {lines.map((line, i) => (
+                  <tspan
+                    key={i}
+                    x={cx}
+                    dy={i === 0 ? `${-(lines.length - 1) * 0.55}em` : "1.15em"}
+                  >
+                    {line}
+                  </tspan>
+                ))}
               </text>
             </g>
           );
