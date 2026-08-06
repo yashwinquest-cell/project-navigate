@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useReducer, useRef, useState } from "react";
 import { demoVenue, type Venue, type VenueRoom } from "@/lib/venue";
 import {
@@ -34,6 +36,7 @@ function clonedDemoVenue(): Venue {
 }
 
 export default function VenueEditor() {
+  const router = useRouter();
   const [state, dispatch] = useReducer(editorReducer, blankVenue);
   const [mode, setMode] = useState<Mode>("walkway");
   const [draft, setDraft] = useState<VenueRoom | null>(null);
@@ -181,7 +184,7 @@ export default function VenueEditor() {
 
   function previewInApp() {
     window.localStorage.setItem(CUSTOM_VENUE_KEY, json);
-    window.location.href = "/";
+    router.push("/");
   }
 
   async function download3D() {
@@ -201,9 +204,9 @@ export default function VenueEditor() {
           <p className="app-eyebrow">Venue editor</p>
           <h1 className="app-title">Build a real venue</h1>
         </div>
-        <a className="header-link" href="/">
+        <Link className="header-link" href="/">
           Back to map
-        </a>
+        </Link>
       </header>
 
       <div className="editor-body">
