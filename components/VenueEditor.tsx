@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useReducer, useRef, useState } from "react";
 import { demoVenue, type Venue, type VenueRoom } from "@/lib/venue";
 import {
@@ -9,6 +11,9 @@ import {
   CUSTOM_VENUE_KEY,
 } from "@/lib/editorState";
 import { CATEGORY_META, CATEGORY_OPTIONS } from "@/lib/categories";
+import { wrapLabel } from "@/lib/textWrap";
+import { downloadBlob, exportVenueToGLB, slugify } from "@/lib/exportGLB";
+import { parseDxfToVenue } from "@/lib/dxfImport";
 
 type Mode = "walkway" | "room" | "node" | "edge";
 
@@ -31,6 +36,7 @@ function clonedDemoVenue(): Venue {
 }
 
 export default function VenueEditor() {
+  const router = useRouter();
   const [state, dispatch] = useReducer(editorReducer, blankVenue);
   const [mode, setMode] = useState<Mode>("walkway");
   const [draft, setDraft] = useState<VenueRoom | null>(null);
@@ -39,8 +45,13 @@ export default function VenueEditor() {
   const [importText, setImportText] = useState("");
   const [importError, setImportError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [dxfWarnings, setDxfWarnings] = useState<string[]>([]);
+  const [dxfError, setDxfError] = useState("");
+  const [importingDxf, setImportingDxf] = useState(false);
 
   const svgRef = useRef<SVGSVGElement>(null);
+  const dxfInputRef = useRef<HTMLInputElement>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
 
   const nodesById = new Map(state.nodes.map((n) => [n.id, n]));
@@ -136,6 +147,35 @@ export default function VenueEditor() {
     }
   }
 
+  function handleDxfFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportingDxf(true);
+    setDxfError("");
+    setDxfWarnings([]);
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result ?? "");
+        const name = file.name.replace(/\.dxf$/i, "");
+        const { venue, warnings } = parseDxfToVenue(text, name);
+        dispatch({ type: "LOAD", venue });
+        setPendingEdgeFrom(null);
+        setDxfWarnings(warnings);
+      } catch (err) {
+        setDxfError(err instanceof Error ? err.message : "Couldn't read that DXF file.");
+      } finally {
+        setImportingDxf(false);
+      }
+    };
+    reader.onerror = () => {
+      setDxfError("Couldn't read that file.");
+      setImportingDxf(false);
+    };
+    reader.readAsText(file);
+  }
+
   async function copyJson() {
     await navigator.clipboard.writeText(json);
     setCopied(true);
@@ -144,7 +184,17 @@ export default function VenueEditor() {
 
   function previewInApp() {
     window.localStorage.setItem(CUSTOM_VENUE_KEY, json);
-    window.location.href = "/";
+    router.push("/");
+  }
+
+  async function download3D() {
+    setExporting(true);
+    try {
+      const blob = await exportVenueToGLB(state);
+      downloadBlob(blob, `${slugify(state.name)}.glb`);
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -154,9 +204,9 @@ export default function VenueEditor() {
           <p className="app-eyebrow">Venue editor</p>
           <h1 className="app-title">Build a real venue</h1>
         </div>
-        <a className="header-link" href="/">
+        <Link className="header-link" href="/">
           Back to map
-        </a>
+        </Link>
       </header>
 
       <div className="editor-body">
@@ -225,6 +275,9 @@ export default function VenueEditor() {
                 .map((poi) => {
                   const meta = CATEGORY_META[poi.category];
                   const room = poi.room!;
+                  const cx = room.x + room.w / 2;
+                  const cy = room.y + room.h / 2;
+                  const lines = wrapLabel(poi.name, room.w - 12);
                   return (
                     <g key={`room-${poi.id}`}>
                       <rect
@@ -237,13 +290,16 @@ export default function VenueEditor() {
                         stroke={`var(${meta.colorVar})`}
                         strokeWidth={2}
                       />
-                      <text
-                        x={room.x + room.w / 2}
-                        y={room.y + room.h / 2 + 4}
-                        textAnchor="middle"
-                        className="room-label"
-                      >
-                        {poi.name}
+                      <text x={cx} y={cy} textAnchor="middle" className="room-label">
+                        {lines.map((line, i) => (
+                          <tspan
+                            key={i}
+                            x={cx}
+                            dy={i === 0 ? `${-(lines.length - 1) * 0.55}em` : "1.15em"}
+                          >
+                            {line}
+                          </tspan>
+                        ))}
                       </text>
                     </g>
                   );
@@ -364,10 +420,32 @@ export default function VenueEditor() {
               <button className="ghost-btn" onClick={() => setShowImport((v) => !v)}>
                 Import JSON
               </button>
+              <button
+                className="ghost-btn"
+                onClick={() => dxfInputRef.current?.click()}
+                disabled={importingDxf}
+              >
+                {importingDxf ? "Reading DXF…" : "Import DXF"}
+              </button>
               <button className="ghost-btn danger" onClick={clearAll}>
                 Clear all
               </button>
             </div>
+            <input
+              ref={dxfInputRef}
+              type="file"
+              accept=".dxf"
+              onChange={handleDxfFile}
+              style={{ display: "none" }}
+            />
+            {dxfError && <p className="error-text">{dxfError}</p>}
+            {dxfWarnings.length > 0 && (
+              <ul className="issue-list">
+                {dxfWarnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            )}
             {showImport && (
               <div className="import-box">
                 <textarea
@@ -523,6 +601,9 @@ export default function VenueEditor() {
                 disabled={validation.issues.length > 0}
               >
                 Preview in app
+              </button>
+              <button className="ghost-btn" onClick={download3D} disabled={exporting}>
+                {exporting ? "Preparing…" : "Download 3D model"}
               </button>
             </div>
             <textarea className="json-input" rows={8} readOnly value={json} />

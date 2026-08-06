@@ -5,7 +5,8 @@ export type Category =
   | "food"
   | "shop"
   | "restroom"
-  | "entertainment";
+  | "entertainment"
+  | "nature";
 
 export interface VenueNode {
   id: string;
@@ -44,117 +45,94 @@ export interface Venue {
   pois: PointOfInterest[];
 }
 
-export const demoVenue: Venue = {
-  name: "Sunrise Mall — Ground Floor",
-  viewBox: { w: 800, h: 500 },
-  walkways: [{ x: 40, y: 230, w: 740, h: 40 }],
-  startNodeId: "entrance",
-  nodes: [
-    { id: "entrance", x: 60, y: 250 },
-    { id: "c1", x: 160, y: 250 },
-    { id: "c2", x: 260, y: 250 },
-    { id: "c3", x: 360, y: 250 },
-    { id: "c4", x: 460, y: 250 },
-    { id: "c5", x: 560, y: 250 },
-    { id: "c6", x: 660, y: 250 },
-    { id: "c7", x: 740, y: 250 },
-    { id: "ticket", x: 160, y: 130 },
-    { id: "exitA", x: 160, y: 370 },
-    { id: "foodcourt", x: 260, y: 130 },
-    { id: "toystore", x: 260, y: 370 },
-    { id: "electronics", x: 460, y: 130 },
-    { id: "restrooms", x: 460, y: 370 },
-    { id: "cinema", x: 660, y: 130 },
-    { id: "kidszone", x: 660, y: 370 },
-    { id: "exitB", x: 740, y: 130 },
-  ],
-  edges: [
-    { from: "entrance", to: "c1" },
-    { from: "c1", to: "c2" },
-    { from: "c2", to: "c3" },
-    { from: "c3", to: "c4" },
-    { from: "c4", to: "c5" },
-    { from: "c5", to: "c6" },
-    { from: "c6", to: "c7" },
-    { from: "c1", to: "ticket" },
-    { from: "c1", to: "exitA" },
-    { from: "c2", to: "foodcourt" },
-    { from: "c2", to: "toystore" },
-    { from: "c4", to: "electronics" },
-    { from: "c4", to: "restrooms" },
-    { from: "c6", to: "cinema" },
-    { from: "c6", to: "kidszone" },
-    { from: "c7", to: "exitB" },
-  ],
-  pois: [
-    {
-      id: "entrance",
-      name: "Main Entrance",
-      category: "entrance",
-      nodeId: "entrance",
-    },
-    {
-      id: "ticket",
-      name: "Ticket Counter",
-      category: "ticket",
-      nodeId: "ticket",
-      room: { x: 110, y: 70, w: 100, h: 60 },
-    },
-    {
-      id: "exitA",
-      name: "Emergency Exit A",
-      category: "exit",
-      nodeId: "exitA",
-      room: { x: 110, y: 370, w: 100, h: 60 },
-    },
-    {
-      id: "foodcourt",
-      name: "Food Court",
-      category: "food",
-      nodeId: "foodcourt",
-      room: { x: 200, y: 70, w: 120, h: 60 },
-    },
-    {
-      id: "toystore",
-      name: "Toy World",
-      category: "shop",
-      nodeId: "toystore",
-      room: { x: 200, y: 370, w: 120, h: 60 },
-    },
-    {
-      id: "electronics",
-      name: "TechZone Electronics",
-      category: "shop",
-      nodeId: "electronics",
-      room: { x: 390, y: 70, w: 140, h: 60 },
-    },
-    {
-      id: "restrooms",
-      name: "Restrooms",
-      category: "restroom",
-      nodeId: "restrooms",
-      room: { x: 390, y: 370, w: 140, h: 60 },
-    },
-    {
-      id: "cinema",
-      name: "Galaxy Cinema",
-      category: "entertainment",
-      nodeId: "cinema",
-      room: { x: 590, y: 70, w: 140, h: 60 },
-    },
-    {
-      id: "kidszone",
-      name: "Kids Play Zone",
-      category: "entertainment",
-      nodeId: "kidszone",
-      room: { x: 590, y: 370, w: 140, h: 60 },
-    },
-    {
-      id: "exitB",
-      name: "Emergency Exit B",
-      category: "exit",
-      nodeId: "exitB",
-      room: { x: 690, y: 70, w: 100, h: 60 },
-    },
-  ],
-};
+/**
+ * Eco Park (New Town, Kolkata) — digitized from the HIDCO master plan.
+ * A schematic single winding path down the park's real visitor route,
+ * with each zone's actual name/category from the plan's legend branching
+ * off it. Coordinates are schematic (like a transit map), not to scale.
+ */
+interface BranchSpec {
+  id: string;
+  name: string;
+  category: Category;
+}
+interface BranchRow {
+  left: BranchSpec;
+  right: BranchSpec;
+}
+
+const SPINE_X = 330;
+const START_Y = 40;
+const SPINE_SPACING = 100;
+const BRANCH_GAP = 150;
+const ROOM_W = 140;
+const ROOM_H = 60;
+
+const branchRows: BranchRow[] = [
+  { left: { id: "visitorcenter", name: "Visitors Center", category: "entertainment" }, right: { id: "toilet1", name: "Toilet", category: "restroom" } },
+  { left: { id: "sevenwonders", name: "7-Wonders", category: "entertainment" }, right: { id: "childrenpark", name: "Children Park", category: "entertainment" } },
+  { left: { id: "foodcourt", name: "Food Court", category: "food" }, right: { id: "butterflygarden", name: "Butterfly Garden", category: "nature" } },
+  { left: { id: "helliconiagarden", name: "Helliconia Garden", category: "nature" }, right: { id: "aviary", name: "Aviary", category: "entertainment" } },
+  { left: { id: "snowtheme", name: "Snow Theme Park", category: "entertainment" }, right: { id: "deerpark", name: "Deer Park", category: "nature" } },
+  { left: { id: "amphitheater", name: "Amphitheater", category: "entertainment" }, right: { id: "sculpturegarden", name: "Sculpture Garden", category: "nature" } },
+  { left: { id: "rosegarden", name: "Rose Garden", category: "nature" }, right: { id: "fruitgarden", name: "Fruit Garden", category: "nature" } },
+  { left: { id: "bamboogarden", name: "Bamboo Garden", category: "nature" }, right: { id: "musicalfountain", name: "Musical Fountain", category: "entertainment" } },
+  { left: { id: "ecoisland", name: "Eco-Island", category: "nature" }, right: { id: "toytrain", name: "Toy Train Station", category: "entertainment" } },
+  { left: { id: "wildflowermeadow", name: "Wild Flower Meadow", category: "nature" }, right: { id: "rabiaranya", name: "Rabi Aranya", category: "nature" } },
+  { left: { id: "japaneseforest", name: "Japanese Forest", category: "nature" }, right: { id: "ecoresort", name: "Eco-Resort", category: "entertainment" } },
+  { left: { id: "eiffeltower", name: "Eiffel Tower", category: "entertainment" }, right: { id: "iceskating", name: "Ice Skating Rink", category: "entertainment" } },
+  { left: { id: "ticketcounter", name: "Ticket Counter", category: "ticket" }, right: { id: "toilet2", name: "Toilet", category: "restroom" } },
+];
+
+function buildEcoPark(): Venue {
+  const nodes: VenueNode[] = [{ id: "entrance", x: SPINE_X, y: START_Y }];
+  const edges: VenueEdge[] = [];
+  const pois: PointOfInterest[] = [
+    { id: "entrance", name: "Entrance Plaza", category: "entrance", nodeId: "entrance" },
+  ];
+
+  let prevSpineId = "entrance";
+  branchRows.forEach((row, i) => {
+    const y = START_Y + (i + 1) * SPINE_SPACING;
+    const spineId = `s${i + 1}`;
+    nodes.push({ id: spineId, x: SPINE_X, y });
+    edges.push({ from: prevSpineId, to: spineId });
+    prevSpineId = spineId;
+
+    const leftX = SPINE_X - BRANCH_GAP;
+    const rightX = SPINE_X + BRANCH_GAP;
+    nodes.push({ id: row.left.id, x: leftX, y });
+    nodes.push({ id: row.right.id, x: rightX, y });
+    edges.push({ from: spineId, to: row.left.id });
+    edges.push({ from: spineId, to: row.right.id });
+
+    pois.push({
+      id: row.left.id,
+      name: row.left.name,
+      category: row.left.category,
+      nodeId: row.left.id,
+      room: { x: leftX - ROOM_W, y: y - ROOM_H / 2, w: ROOM_W, h: ROOM_H },
+    });
+    pois.push({
+      id: row.right.id,
+      name: row.right.name,
+      category: row.right.category,
+      nodeId: row.right.id,
+      room: { x: rightX, y: y - ROOM_H / 2, w: ROOM_W, h: ROOM_H },
+    });
+  });
+
+  const lastY = START_Y + branchRows.length * SPINE_SPACING;
+
+  return {
+    name: "Eco Park — New Town, Kolkata",
+    viewBox: { w: SPINE_X + BRANCH_GAP + ROOM_W + 40, h: lastY + ROOM_H / 2 + 40 },
+    walkways: [{ x: SPINE_X - 20, y: 20, w: 40, h: lastY - 20 }],
+    startNodeId: "entrance",
+    nodes,
+    edges,
+    pois,
+  };
+}
+
+export const demoVenue: Venue = buildEcoPark();
