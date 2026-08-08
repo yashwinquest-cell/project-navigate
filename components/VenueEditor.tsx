@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { demoVenue, type Venue, type VenueRoom } from "@/lib/venue";
+import { isAuthed, signOut } from "@/lib/auth";
 import {
   editorReducer,
   blankVenue,
@@ -49,6 +50,17 @@ export default function VenueEditor() {
   const [dxfWarnings, setDxfWarnings] = useState<string[]>([]);
   const [dxfError, setDxfError] = useState("");
   const [importingDxf, setImportingDxf] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Operator-only route: redirect guests to the login page. This is a
+  // client-side gate (see lib/auth.ts) — real enforcement needs a backend.
+  useEffect(() => {
+    if (isAuthed()) {
+      setAuthChecked(true);
+    } else {
+      router.replace("/login");
+    }
+  }, [router]);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const dxfInputRef = useRef<HTMLInputElement>(null);
@@ -197,6 +209,16 @@ export default function VenueEditor() {
     }
   }
 
+  function handleSignOut() {
+    signOut();
+    router.replace("/login");
+  }
+
+  // Don't flash the editor before the auth check completes.
+  if (!authChecked) {
+    return <div className="editor-gate">Checking your session…</div>;
+  }
+
   return (
     <div className="editor">
       <header className="editor-header">
@@ -204,9 +226,14 @@ export default function VenueEditor() {
           <p className="app-eyebrow">Venue editor</p>
           <h1 className="app-title">Build a real venue</h1>
         </div>
-        <Link className="header-link" href="/">
-          Back to map
-        </Link>
+        <div className="editor-header-actions">
+          <Link className="header-link" href="/">
+            Back to map
+          </Link>
+          <button className="header-link" onClick={handleSignOut}>
+            Sign out
+          </button>
+        </div>
       </header>
 
       <div className="editor-body">
