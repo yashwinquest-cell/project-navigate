@@ -31,23 +31,47 @@ create policy "public read venues"
   on public.venues for select
   using (true);
 
--- Operators: allow writes. NOTE — this currently allows writes with the anon
--- key, which is fine for testing but not production-safe. Lock this down once
--- the operator login is wired to Supabase Auth (then change to:
---   using (auth.role() = 'authenticated') / with check (auth.role() = 'authenticated')
-create policy "anon write venues"
+-- Operators: only SIGNED-IN users may write (insert/update/delete). Guests
+-- using just the publishable key can read but never publish. This is enforced
+-- by the database, so it can't be bypassed from the client.
+create policy "authenticated write venues"
   on public.venues for all
+  to authenticated
   using (true)
   with check (true);
 ```
 
-## 3. Turn on Realtime for live updates
+> **Upgrading an existing project?** If you previously ran the older
+> `anon write venues` policy, drop it first so anonymous writes are no longer
+> allowed:
+>
+> ```sql
+> drop policy if exists "anon write venues" on public.venues;
+> ```
+>
+> then run the `authenticated write venues` policy above.
+
+## 3. Create operator accounts
+
+Publishing is now restricted to signed-in operators (Supabase Auth). There is
+no public sign-up page — you add operators yourself:
+
+1. In Supabase, open **Authentication → Users → Add user**.
+2. Enter the operator's email and a password, and tick **Auto Confirm User**
+   (so they can sign in immediately without an email-confirmation step).
+3. Give those credentials to the operator. They sign in at `/login`, which now
+   verifies against Supabase — guests never need an account.
+
+To stop anyone from self-registering, also open **Authentication → Providers →
+Email** and turn **off** "Allow new users to sign up".
+
+## 4. Turn on Realtime for live updates
 
 In **Database → Replication** (or **Realtime**), enable realtime for the
 `public.venues` table. This is what pushes an operator's change to every open
 app instantly.
 
-## 4. Add the keys
+## 5. Add the keys
 
 **Local development** — copy `.env.local.example` to `.env.local` and fill in
 both values, then `npm run dev`.

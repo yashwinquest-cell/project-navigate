@@ -55,14 +55,22 @@ export default function VenueEditor() {
   const [publishing, setPublishing] = useState(false);
   const [publishMsg, setPublishMsg] = useState("");
 
-  // Operator-only route: redirect guests to the login page. This is a
-  // client-side gate (see lib/auth.ts) — real enforcement needs a backend.
+  // Operator-only route: redirect guests to the login page. With Supabase
+  // configured this checks a real signed-in session (see lib/auth.ts); the
+  // JWT it carries is also what authorizes publishing at the database level.
   useEffect(() => {
-    if (isAuthed()) {
-      setAuthChecked(true);
-    } else {
-      router.replace("/login");
-    }
+    let active = true;
+    isAuthed().then((authed) => {
+      if (!active) return;
+      if (authed) {
+        setAuthChecked(true);
+      } else {
+        router.replace("/login");
+      }
+    });
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -227,8 +235,8 @@ export default function VenueEditor() {
     }
   }
 
-  function handleSignOut() {
-    signOut();
+  async function handleSignOut() {
+    await signOut();
     router.replace("/login");
   }
 

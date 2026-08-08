@@ -30,6 +30,13 @@ export function getSupabase(): SupabaseClient | null {
   if (!isSupabaseConfigured()) return null;
   if (!client) {
     client = createClient(url as string, anonKey as string, {
+      // Persist the operator's login across reloads and auto-refresh the JWT.
+      // This works on static hosting (session lives in localStorage), and the
+      // token is what the venues-table RLS checks to authorize writes.
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
       realtime: { params: { eventsPerSecond: 2 } },
     });
   }

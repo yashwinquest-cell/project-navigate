@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signIn, isAuthed, DEMO_EMAIL, DEMO_PASSWORD } from "@/lib/auth";
+import {
+  signIn,
+  isAuthed,
+  usingRealAuth,
+  DEMO_EMAIL,
+  DEMO_PASSWORD,
+} from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,13 +20,20 @@ export default function LoginPage() {
 
   // Already signed in? Skip straight to the editor.
   useEffect(() => {
-    if (isAuthed()) router.replace("/editor");
+    let active = true;
+    isAuthed().then((authed) => {
+      if (active && authed) router.replace("/editor");
+    });
+    return () => {
+      active = false;
+    };
   }, [router]);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
-    const result = signIn(email, password);
+    setError("");
+    const result = await signIn(email, password);
     if (result.ok) {
       router.replace("/editor");
     } else {
@@ -88,14 +101,19 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="auth-demo-note">
-          <strong>Demo login</strong> — this is a placeholder gate, not real
-          security yet. Use{" "}
-          <code>
-            {DEMO_EMAIL}
-          </code>{" "}
-          / <code>{DEMO_PASSWORD}</code>.
-        </div>
+        {usingRealAuth() ? (
+          <div className="auth-demo-note">
+            <strong>Secure login</strong> — operator accounts are managed in
+            Supabase Auth. Ask your admin to add you (Authentication → Users) if
+            you don&apos;t have an account yet.
+          </div>
+        ) : (
+          <div className="auth-demo-note">
+            <strong>Demo login</strong> — no backend configured, so this is a
+            placeholder gate, not real security. Use{" "}
+            <code>{DEMO_EMAIL}</code> / <code>{DEMO_PASSWORD}</code>.
+          </div>
+        )}
 
         <Link className="auth-back" href="/">
           ← Back to the venue map
