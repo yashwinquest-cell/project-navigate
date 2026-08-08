@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { demoVenue, type Venue, type VenueRoom } from "@/lib/venue";
+import { isAuthed, signOut } from "@/lib/auth";
 import {
   editorReducer,
   blankVenue,
@@ -14,6 +15,7 @@ import { CATEGORY_META, CATEGORY_OPTIONS } from "@/lib/categories";
 import { wrapLabel } from "@/lib/textWrap";
 import { downloadBlob, exportVenueToGLB, slugify } from "@/lib/exportGLB";
 import { parseDxfToVenue } from "@/lib/dxfImport";
+import { publishVenue, isSupabaseConfigured } from "@/lib/venueStore";
 
 type Mode = "walkway" | "room" | "node" | "edge";
 
@@ -49,6 +51,19 @@ export default function VenueEditor() {
   const [dxfWarnings, setDxfWarnings] = useState<string[]>([]);
   const [dxfError, setDxfError] = useState("");
   const [importingDxf, setImportingDxf] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishMsg, setPublishMsg] = useState("");
+
+  // Operator-only route: redirect guests to the login page. This is a
+  // client-side gate (see lib/auth.ts) — real enforcement needs a backend.
+  useEffect(() => {
+    if (isAuthed()) {
+      setAuthChecked(true);
+    } else {
+      router.replace("/login");
+    }
+  }, [router]);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const dxfInputRef = useRef<HTMLInputElement>(null);
@@ -197,6 +212,31 @@ export default function VenueEditor() {
     }
   }
 
+  async function handlePublish() {
+    setPublishing(true);
+    setPublishMsg("");
+    try {
+      const result = await publishVenue(state);
+      setPublishMsg(
+        result.ok
+          ? "Published — every device will pick up this version."
+          : result.error ?? "Publish failed."
+      );
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  function handleSignOut() {
+    signOut();
+    router.replace("/login");
+  }
+
+  // Don't flash the editor before the auth check completes.
+  if (!authChecked) {
+    return <div className="editor-gate">Checking your session…</div>;
+  }
+
   return (
     <div className="editor">
       <header className="editor-header">
@@ -204,9 +244,14 @@ export default function VenueEditor() {
           <p className="app-eyebrow">Venue editor</p>
           <h1 className="app-title">Build a real venue</h1>
         </div>
-        <Link className="header-link" href="/">
-          Back to map
-        </Link>
+        <div className="editor-header-actions">
+          <Link className="header-link" href="/">
+            Back to map
+          </Link>
+          <button className="header-link" onClick={handleSignOut}>
+            Sign out
+          </button>
+        </div>
       </header>
 
       <div className="editor-body">
@@ -606,6 +651,28 @@ export default function VenueEditor() {
                 {exporting ? "Preparing…" : "Download 3D model"}
               </button>
             </div>
+
+            <div className="publish-row">
+              <button
+                className="primary-btn publish-btn"
+                onClick={handlePublish}
+                disabled={publishing || validation.issues.length > 0}
+                title={
+                  isSupabaseConfigured()
+                    ? "Save to the cloud so every device updates"
+                    : "Cloud sync not configured yet — will save locally only"
+                }
+              >
+                {publishing ? "Publishing…" : "Publish to all devices"}
+              </button>
+              {!isSupabaseConfigured() && (
+                <span className="publish-hint">
+                  Cloud sync not configured — add Supabase keys to sync across devices.
+                </span>
+              )}
+              {publishMsg && <p className="publish-msg">{publishMsg}</p>}
+            </div>
+
             <textarea className="json-input" rows={8} readOnly value={json} />
           </section>
         </aside>

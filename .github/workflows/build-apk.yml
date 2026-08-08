@@ -8,6 +8,8 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,6 +36,9 @@ jobs:
       - name: Build web assets (Capacitor mode)
         env:
           CAPACITOR: "true"
+          # Optional cloud sync — set these as repo Variables to enable Supabase.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: npm run build
 
       - name: Add Android platform
@@ -54,3 +59,21 @@ jobs:
           name: navigate-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      # Also publish the APK to a dedicated `apk` branch. Artifact downloads
+      # go through a blob CDN that some networks can't reach; a git branch is
+      # fetchable anywhere git works.
+      - name: Publish APK to apk branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/apkout
+          cp android/app/build/outputs/apk/debug/app-debug.apk /tmp/apkout/navigate.apk
+          cd /tmp/apkout
+          git init -q
+          git checkout -q -b apk
+          git config user.email "actions@github.com"
+          git config user.name "github-actions"
+          git add navigate.apk
+          git commit -q -m "Debug APK for ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" apk

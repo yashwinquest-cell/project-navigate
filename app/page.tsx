@@ -8,6 +8,7 @@ import { findRoute } from "@/lib/pathfinding";
 import { CATEGORY_META, getPoiCode } from "@/lib/categories";
 import { CUSTOM_VENUE_KEY } from "@/lib/editorState";
 import { downloadBlob, exportVenueToGLB, slugify } from "@/lib/exportGLB";
+import { loadPublishedVenue, subscribeVenue, isSupabaseConfigured } from "@/lib/venueStore";
 import VenueMap from "@/components/VenueMap";
 import Place3DModal from "@/components/Place3DModal";
 
@@ -25,17 +26,49 @@ export default function Home() {
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(CUSTOM_VENUE_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as Venue;
-      if (parsed && Array.isArray(parsed.nodes) && Array.isArray(parsed.pois)) {
-        setVenue(parsed);
+    let cancelled = false;
+
+    // Source of truth priority:
+    // 1. Cloud-published venue (shared across all devices, cached for offline).
+    // 2. A locally-previewed custom venue (editor "Preview in app").
+    // 3. The bundled demo venue.
+    async function load() {
+      if (isSupabaseConfigured()) {
+        const published = await loadPublishedVenue();
+        if (!cancelled && published) {
+          setVenue(published);
+          setIsCustom(true);
+          return;
+        }
+      }
+      const raw = window.localStorage.getItem(CUSTOM_VENUE_KEY);
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw) as Venue;
+        if (parsed && Array.isArray(parsed.nodes) && Array.isArray(parsed.pois)) {
+          if (!cancelled) {
+            setVenue(parsed);
+            setIsCustom(true);
+          }
+        }
+      } catch {
+        // ignore malformed data left over from a previous editor session
+      }
+    }
+    load();
+
+    // Live updates: when an operator publishes, every open app updates itself.
+    const unsubscribe = subscribeVenue((next) => {
+      if (!cancelled) {
+        setVenue(next);
         setIsCustom(true);
       }
-    } catch {
-      // ignore malformed data left over from a previous editor session
-    }
+    });
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   const route = useMemo(() => {
