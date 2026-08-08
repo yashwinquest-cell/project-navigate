@@ -1,10 +1,18 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// These are inlined at build time (NEXT_PUBLIC_*). The anon key is designed to
-// be public/client-side — it is NOT a secret. Row-level security in Supabase is
-// what actually protects the data.
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Supabase project config. Env vars win if set (e.g. to point a fork at a
+// different project); otherwise these committed defaults are used.
+//
+// The publishable key below is a CLIENT key by design — Supabase intends it to
+// ship in the browser/app bundle, so committing it is fine. It is NOT the
+// `sb_secret_...` key (which must never be exposed). Data is protected by
+// Row Level Security in Supabase, not by hiding this key.
+const DEFAULT_SUPABASE_URL = "https://vzikysvqykgydkxniqpf.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_U4ZXON_4sboiAIrdgaUvDw_bsfJA3pS";
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const anonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
 /** True when both Supabase env vars are present, so cloud sync is available. */
 export function isSupabaseConfigured(): boolean {
