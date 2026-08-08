@@ -879,3 +879,28 @@ button {
   font-size: 14px;
   background: var(--paper);
 }
+
+/* ---------- publish to cloud ---------- */
+
+.publish-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.publish-btn {
+  width: 100%;
+}
+
+.publish-hint {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.publish-msg {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--route);
+}

@@ -15,6 +15,7 @@ import { CATEGORY_META, CATEGORY_OPTIONS } from "@/lib/categories";
 import { wrapLabel } from "@/lib/textWrap";
 import { downloadBlob, exportVenueToGLB, slugify } from "@/lib/exportGLB";
 import { parseDxfToVenue } from "@/lib/dxfImport";
+import { publishVenue, isSupabaseConfigured } from "@/lib/venueStore";
 
 type Mode = "walkway" | "room" | "node" | "edge";
 
@@ -51,6 +52,8 @@ export default function VenueEditor() {
   const [dxfError, setDxfError] = useState("");
   const [importingDxf, setImportingDxf] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishMsg, setPublishMsg] = useState("");
 
   // Operator-only route: redirect guests to the login page. This is a
   // client-side gate (see lib/auth.ts) — real enforcement needs a backend.
@@ -206,6 +209,21 @@ export default function VenueEditor() {
       downloadBlob(blob, `${slugify(state.name)}.glb`);
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handlePublish() {
+    setPublishing(true);
+    setPublishMsg("");
+    try {
+      const result = await publishVenue(state);
+      setPublishMsg(
+        result.ok
+          ? "Published — every device will pick up this version."
+          : result.error ?? "Publish failed."
+      );
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -633,6 +651,28 @@ export default function VenueEditor() {
                 {exporting ? "Preparing…" : "Download 3D model"}
               </button>
             </div>
+
+            <div className="publish-row">
+              <button
+                className="primary-btn publish-btn"
+                onClick={handlePublish}
+                disabled={publishing || validation.issues.length > 0}
+                title={
+                  isSupabaseConfigured()
+                    ? "Save to the cloud so every device updates"
+                    : "Cloud sync not configured yet — will save locally only"
+                }
+              >
+                {publishing ? "Publishing…" : "Publish to all devices"}
+              </button>
+              {!isSupabaseConfigured() && (
+                <span className="publish-hint">
+                  Cloud sync not configured — add Supabase keys to sync across devices.
+                </span>
+              )}
+              {publishMsg && <p className="publish-msg">{publishMsg}</p>}
+            </div>
+
             <textarea className="json-input" rows={8} readOnly value={json} />
           </section>
         </aside>
