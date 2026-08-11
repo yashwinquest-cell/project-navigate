@@ -43,6 +43,11 @@ export interface Venue {
   nodes: VenueNode[];
   edges: VenueEdge[];
   pois: PointOfInterest[];
+  /**
+   * Optional real-world location of the venue, for the street-map view and
+   * "get directions" links. Older saved venues without this still load fine.
+   */
+  geo?: { lat: number; lng: number; zoom: number };
 }
 
 /**
@@ -126,6 +131,8 @@ function buildEcoPark(): Venue {
 
   return {
     name: "Eco Park — New Town, Kolkata",
+    // Real-world position of Eco Park (Prakriti Tirtha), New Town, Kolkata.
+    geo: { lat: 22.6031, lng: 88.4658, zoom: 14 },
     viewBox: { w: SPINE_X + BRANCH_GAP + ROOM_W + 40, h: lastY + ROOM_H / 2 + 40 },
     walkways: [{ x: SPINE_X - 20, y: 20, w: 40, h: lastY - 20 }],
     startNodeId: "entrance",

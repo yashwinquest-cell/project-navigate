@@ -13,6 +13,8 @@ import VenueMap from "@/components/VenueMap";
 import Place3DModal from "@/components/Place3DModal";
 
 const Venue3DView = dynamic(() => import("@/components/Venue3DView"), { ssr: false });
+// MapLibre needs the browser; loaded only when the Location tab is opened.
+const LocationMap = dynamic(() => import("@/components/LocationMap"), { ssr: false });
 
 const METERS_PER_UNIT = 0.1;
 const WALK_SPEED_MPS = 1.3;
@@ -22,7 +24,7 @@ export default function Home() {
   const [isCustom, setIsCustom] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"2D" | "3D">("2D");
+  const [viewMode, setViewMode] = useState<"2D" | "3D" | "Location">("2D");
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -137,6 +139,12 @@ export default function Home() {
             >
               3D map
             </button>
+            <button
+              data-active={viewMode === "Location"}
+              onClick={() => setViewMode("Location")}
+            >
+              Location
+            </button>
           </div>
           <button className="header-link" onClick={handleDownload3D} disabled={exporting}>
             {exporting ? "Preparing…" : "Download 3D model"}
@@ -145,16 +153,18 @@ export default function Home() {
       </header>
 
       <div className="map-area">
-        {viewMode === "2D" ? (
+        {viewMode === "2D" && (
           <VenueMap
             venue={venue}
             selectedId={selectedId}
             route={route}
             onSelectPoi={handleSelect}
           />
-        ) : (
+        )}
+        {viewMode === "3D" && (
           <Venue3DView venue={venue} routeNodeIds={route?.nodeIds} onSelectPoi={handleSelect} />
         )}
+        {viewMode === "Location" && <LocationMap venue={venue} />}
       </div>
 
       <div className="sheet">

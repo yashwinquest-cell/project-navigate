@@ -22,6 +22,8 @@ It ships three ways from one codebase:
 - **Venue editor** — draw walkways, rooms, and points of interest; connect them
   into a routing graph; validate that every place is reachable.
 - **AutoCAD / DXF import** — turn a floor-plan DXF into a starter venue.
+- **Real-world location view** — a live street map (MapLibre + OpenStreetMap)
+  showing where the venue is, with a marker and a get-directions link.
 - **Cloud sync** — an operator publishes once and every phone updates live
   (Supabase Realtime), with an offline cache so the last-seen map always loads.
 - **Operator login** — publishing is gated behind real authentication; guests
@@ -35,6 +37,7 @@ It ships three ways from one codebase:
 | Language | TypeScript, React 19 |
 | 3D | Three.js (`GLTFExporter` for `.glb`) |
 | CAD import | `dxf-parser` |
+| Street map | MapLibre GL + OpenStreetMap tiles |
 | Cloud sync & auth | Supabase (`@supabase/supabase-js`) |
 | Mobile packaging | Capacitor (Android) |
 | Hosting | GitHub Pages (static export) |
@@ -43,7 +46,7 @@ It ships three ways from one codebase:
 
 ```
 app/            Next.js routes: / (guest map), /editor, /login, PWA manifest
-components/     VenueMap, Venue3DView, Place3DModal, VenueEditor
+components/     VenueMap, Venue3DView, Place3DModal, VenueEditor, LocationMap
 lib/
   pathfinding.ts   Dijkstra routing over the walkway graph
   venue.ts         Venue data model + the bundled demo venue (Eco Park)
